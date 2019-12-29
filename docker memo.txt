@@ -1,0 +1,196 @@
+Introduction to docker 
+----------------------
+
+docker images
+docker pull ubuntu:latest
+docker run -ti ubuntu:latest bash
+cat etc/lsb-release
+docker ps
+---- Create a file in the container touch my_big_file.txt  than run a second container  
+docker run -ti ubuntu:latest bash
+----- and check the file in the second container
+
+docker ps -a
+docker ps -l
+
+--create a containe from blank images
+docker run -ti ubuntu:latest bash
+
+-- add a file 
+touch my_big_file.txt 
+cat etc/lsb-release
+docker ps -l
+docker commit 6fe575beec67 
+docker tag XXXXXXXXXXXXXXXX my_image
+docker commit 6fe575beec67  my_image2
+docker rm  -- to remove containers
+
+docker run -ti my_image bash
+
+-- Run command 
+docker run --rm -ti ubuntu sleep 5
+docker run --rm -ti ubuntu bash -c "sleep 5;echo all done"
+
+-- leave container running in the background
+docker run --rm -d -ti ubuntu bash
+docker attach musing_jepsen
+
+detach with Control-p Contol-q
+
+-- docker exec : create 2 shell from the same container
+docker exec -ti musing_jepsen bash  (When I exit the principal bash , all the exec containers die)
+
+-- logs
+docker run --name my_example -d ubuntu bash -c "lose /etc/password" 
+docker logs my_example
+
+-- kill and remove containers (in two power shell windows)
+docker run --rm -ti ubuntu bash
+docker ps
+docker kill unruffled_bassi
+docker ps -l 'last container to exist'
+docker rm unruffled_bassi
+
+-- Resources Constraints
+
+
+docker  run -d --cpu-shares=4 --name mycpu1024a alpine:3.8 /bin/sh -c 'time dd if=/dev/urandom bs=1M count=100 | md5sum'
+docker  run -d --cpu-shares=4 --name mycpu1024b alpine:3.8 /bin/sh -c 'time dd if=/dev/urandom bs=1M count=100 | md5sum'
+docker  run -d --cpu-shares=4 --name mycpu1024c alpine:3.8 /bin/sh -c 'time dd if=/dev/urandom bs=1M count=100 | md5sum'
+
+docker logs mycpu1024a
+docker logs mycpu1024b
+docker logs mycpu1024c
+
+
+docker  run -d --cpu-shares=4000 --name mycpu1024a alpine:3.8 /bin/sh -c 'time dd if=/dev/urandom bs=1M count=100 | md5sum'
+docker  run -d --cpu-shares=4 --name mycpu1024b alpine:3.8 /bin/sh -c 'time dd if=/dev/urandom bs=1M count=100 | md5sum'
+docker  run -d --cpu-shares=4 --name mycpu1024c alpine:3.8 /bin/sh -c 'time dd if=/dev/urandom bs=1M count=100 | md5sum'
+
+
+
+---clean up container
+docker container prune -f 
+
+docker  run -d --cpus=2 --name mycpu2 alpine:3.8 /bin/sh -c 'time dd if=/dev/urandom bs=1M count=50 | md5sum'
+docker  run -d --cpus=1 --name mycpu1 alpine:3.8 /bin/sh -c 'time dd if=/dev/urandom bs=1M count=50 | md5sum'
+docker  run -d --cpus=.5 --name mycpu.5 alpine:3.8 /bin/sh -c 'time dd if=/dev/urandom bs=1M count=50 | md5sum'
+docker  run -d --cpus=.25 --name mycpu.25 alpine:3.8 /bin/sh -c 'time dd if=/dev/urandom bs=1M count=50 | md5sum'
+docker  run -d --cpus=.1 --name mycpu.1 alpine:3.8 /bin/sh -c 'time dd if=/dev/urandom bs=1M count=50 | md5sum'
+
+docker logs mycpu2
+docker logs mycpu1
+docker logs mycpu.5
+docker logs mycpu.25
+docker logs mycpu.1
+
+
+-------------------------
+Port and networking
+-------------------------
+
+docker run --rm -ti -p 45678:45678 -p 45679:45679 --name echo-server ubuntu:14.04 bash
+
+nc -lp 45678 | nc -lp 45679
+
+install windows client netcat : choco install netcat
+to install choco on windows 10 : https://chocolatey.org/docs/installation
+
+in two others power shell windows run 
+nc localhost 45678
+nc localhost 45679
+
+
+-----dyanmic prots
+docker run --rm -ti -p 45678 -p 45679 --name echo-server ubuntu:14.04 bash
+
+docker port echo-server
+nc localhost 32769
+nc localhost 32768
+
+
+---------------------------
+UDP port
+----------------------------
+What is TCP?
+Transmission Control Protocol (TCP) is a connection-oriented protocol that computers use to communicate over the internet. It is one of the main protocols in TCP/IP networks. TCP provides error-checking and guarantees delivery of data and that packets will be delivered in the order they were sent.
+
+What is UDP?
+User Datagram Protocol (UDP) is a connectionless protocol that works just like TCP but assumes that error-checking and recovery services are not required. Instead, UDP continuously sends datagrams to the recipient whether they receive them or not.
+
+Usage
+TCP is best suited to be used for applications that require high reliability where timing is less of a concern.
+
+World Wide Web (HTTP, HTTPS)
+Secure Shell (SSH)
+File Transfer Protocol (FTP)
+Email (SMTP, IMAP/POP)
+UDP is best suited for applications that require speed and efficiency.
+
+VPN tunneling
+Streaming videos
+Online games
+Live broadcasts
+Domain Name System (DNS)
+Voice over Internet Protocol (VoIP)
+Trivial File Transfer Protocol (TFTP)
+-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
+using udp protocl
+docker run --rm -ti -p 45678/udp --name echo-server ubuntu14.01 bash
+nc -ulp 45678
+
+in client side
+nc -u localhost
+
+------------------------------------------------------------
+custom networking 
+
+Docker network create learning 
+
+put containers into the network
+docker run --rm -ti --net learning --name catserver ubuntu:14.04 bash
+nc dogserver 1234
+
+docker run --rm -ti --net learning --name dogserver ubuntu:14.04 bash
+nc -lp 1234
+
+create other network -- catonly
+Docker network create catonly
+
+connect catserver to catonly network
+docker network connect catonly catserver
+
+create anther server called bobcatserver with catonly as network
+
+docker run --rm -ti --net catonly --name bobcatserver ubuntu:14.04 bash
+nc -lp 1234
+
+
+------------------tag and push image -------------------------------
+docker tag my_image bgeshop/my_image:V1
+Connect to docker hub
+docker push bgeshop/my_image:V1
+------------------------------------------------------------------------
+share data with host machine
+------------------------------------------------------------------------
+docker run --rm -ti --net learning --name catserver -v D:\temp\learning:/etc/config ubuntu:14.04 bash
+
+docker run --rm -ti --net learning --name catserver -v D:\temp\learning\go-app.yaml:/etc/config/go-app.yaml ubuntu:14.04 bash 
+
+-----------------------------------------------------------------------------
+sharing data between containers
+docker run -ti -v /shared-data --name my_container ubuntu bash 
+echo hello > /shared-data/hello.txt
+
+docker run -ti --volumes-from my_container --name my_container_2 ubuntu bash
+
+docker run -ti --volumes-from my_container_2 ubuntu bash
+
+
+--------------------------------------------
+custom docker registry
+docer compse
+https://github.com/dockersamples/example-voting-app
+
